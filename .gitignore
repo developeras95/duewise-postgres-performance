@@ -1,0 +1,11 @@
+# IDE
+.idea/
+*.iml
+.vscode/
+# Local settings
+.env
+# OS
+.DS_Store
+Thumbs.db
+# IntelliJ run configurations (may hold passwords)
+.run/

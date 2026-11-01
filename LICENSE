@@ -1,0 +1,30 @@
+Duewise PostgreSQL Performance Study
+Copyright (c) 2026 Abhijit Saha. All rights reserved.
+
+This source code is published so that prospective clients and employers can
+read and evaluate it. Publishing it does not grant a licence to use it.
+
+What you may do without asking:
+  - Read the code on GitHub.
+  - Fork it on GitHub, as GitHub's Terms of Service allow. A fork grants no
+    further rights.
+  - Clone it and run it on your own computer, solely to evaluate it, for up
+    to 30 days. Not in production, not for real customers or real data.
+
+What needs prior written permission from the copyright holder:
+  Everything else, including using, copying, modifying, merging, publishing,
+  distributing, sublicensing, selling, deploying or hosting this software or
+  any part of it, offering it as a service, and creating derivative works.
+
+Third-party components used by this software are licensed under their own
+terms; they are not part of this repository. This notice does not
+limit any rights those licences give you over those components.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+COPYRIGHT HOLDER BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER
+IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN
+CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+
+Commercial licences: contact the author through https://github.com/developeras95

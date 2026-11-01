@@ -1,0 +1,56 @@
+# PostgreSQL for the performance study. Separate from the Duewise development database:
+# its own project name, volume and port (5433), so nothing here touches your Duewise data.
+#
+#   docker compose up -d                 start (the first start creates the Duewise schema)
+#   docker compose exec postgres psql -U duewise -d duewise
+#   docker compose down                  stop, keep the data
+#   docker compose down -v               stop and delete all generated data
+name: duewise-perf
+
+services:
+  postgres:
+    image: postgres:17-alpine
+    environment:
+      POSTGRES_DB: duewise
+      POSTGRES_USER: duewise
+      POSTGRES_PASSWORD: duewise
+    ports:
+      - "${PERF_PG_PORT:-5433}:5432"
+    # Parallel queries use shared memory under /dev/shm; Docker's 64 MB default is too small for 5M rows.
+    shm_size: 1gb
+    volumes:
+      - duewise-perf-pgdata:/var/lib/postgresql/data
+      - ./schema:/docker-entrypoint-initdb.d:ro    # Duewise schema, loaded on the first start
+      - ./:/work                                    # scripts and results, as /work inside the container
+    # Settings for a laptop with ~16 GB available to Docker. They are part of the results:
+    # every timing in this repository was measured with exactly these values.
+    command:
+      - postgres
+      - -c
+      - shared_buffers=2GB
+      - -c
+      - effective_cache_size=6GB
+      - -c
+      - work_mem=64MB
+      - -c
+      - maintenance_work_mem=1GB
+      - -c
+      - max_wal_size=8GB
+      - -c
+      - random_page_cost=1.1                         # SSD storage
+      - -c
+      - max_parallel_workers_per_gather=2
+      - -c
+      - shared_preload_libraries=pg_stat_statements
+      - -c
+      - pg_stat_statements.track=all
+      - -c
+      - track_io_timing=on
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U duewise -d duewise"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+
+volumes:
+  duewise-perf-pgdata:
