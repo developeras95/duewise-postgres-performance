@@ -1,0 +1,35 @@
+-- Case: 01-overdue-list
+-- Variant: before-count
+-- Query file: cases/01-overdue-list/count.sql
+ -- Measured at: 2026-11-01 03:00 UTC, 5,000,000 invoices, median 195.152 ms over 11 runs
+
+
+-- GET /api/v1/invoices?overdue=true: the count query Spring Data adds to fill "totalElements"
+-- and "totalPages" in the response. Same filter, no joins.
+SELECT count(i.id)
+FROM invoice i
+WHERE i.status IN ('SENT', 'PARTIALLY_PAID')
+  AND i.due_date < DATE '2026-11-01';
+
+                                                                  QUERY PLAN                                                                   
+-----------------------------------------------------------------------------------------------------------------------------------------------
+ Finalize Aggregate  (cost=135125.07..135125.08 rows=1 width=8) (actual time=181.324..199.535 rows=1 loops=1)
+   Buffers: shared hit=102207
+   ->  Gather  (cost=135124.85..135125.06 rows=2 width=8) (actual time=181.178..199.523 rows=3 loops=1)
+         Workers Planned: 2
+         Workers Launched: 2
+         Buffers: shared hit=102207
+         ->  Partial Aggregate  (cost=134124.85..134124.86 rows=1 width=8) (actual time=169.475..169.475 rows=1 loops=3)
+               Buffers: shared hit=102207
+               ->  Parallel Seq Scan on invoice i  (cost=0.00..133458.54 rows=266526 width=8) (actual time=3.719..163.934 rows=197348 loops=3)
+                     Filter: (((status)::text = ANY ('{SENT,PARTIALLY_PAID}'::text[])) AND (due_date < '2026-11-01'::date))
+                     Rows Removed by Filter: 1469319
+                     Buffers: shared hit=102207
+ Settings: effective_cache_size = '6GB', work_mem = '64MB', random_page_cost = '1.1'
+ Planning Time: 0.064 ms
+ JIT:
+   Functions: 17
+   Options: Inlining false, Optimization false, Expressions true, Deforming true
+   Timing: Generation 1.318 ms (Deform 0.332 ms), Inlining 0.000 ms, Optimization 0.649 ms, Emission 10.482 ms, Total 12.449 ms
+ Execution Time: 199.921 ms
+

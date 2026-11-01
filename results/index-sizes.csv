@@ -1,0 +1,2 @@
+measured_at,index,table,index_bytes,table_bytes
+2026-11-01T03:00:43Z,perf_invoice_open_by_issue_date,invoice,27197440,839786496

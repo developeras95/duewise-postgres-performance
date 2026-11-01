@@ -1,0 +1,7 @@
+measured_at,case,variant,invoices,runs,warmups,median_ms,min_ms,max_ms,planning_ms,result_rows,shared_hit,shared_read,top_node
+2026-11-01T03:00:32Z,01-overdue-list,before-page,5000000,11,3,338.833,324.226,363.086,0.333,20,103738,0,Limit
+2026-11-01T03:00:38Z,01-overdue-list,before-count,5000000,11,3,195.152,189.198,204.679,0.079,1,102207,0,Aggregate
+2026-11-01T03:00:41Z,01-overdue-list,before-record-payment,5000000,11,3,17.859,16.408,20.359,0.135,0,41031,0,ModifyTable
+2026-11-01T03:00:43Z,01-overdue-list,after-page,5000000,11,3,0.561,0.549,0.668,0.236,20,136,0,Limit
+2026-11-01T03:00:43Z,01-overdue-list,after-count,5000000,11,3,35.690,35.153,36.994,0.089,1,300020,0,Aggregate
+2026-11-01T03:00:44Z,01-overdue-list,after-record-payment,5000000,11,3,17.200,16.525,18.759,0.143,0,41776,0,ModifyTable

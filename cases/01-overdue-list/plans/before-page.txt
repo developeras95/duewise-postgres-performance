@@ -1,0 +1,65 @@
+-- Case: 01-overdue-list
+-- Variant: before-page
+-- Query file: cases/01-overdue-list/page.sql
+ -- Measured at: 2026-11-01 03:00 UTC, 5,000,000 invoices, median 338.833 ms over 11 runs
+
+
+-- GET /api/v1/invoices?overdue=true (first page, default sort: newest issue date first)
+-- The page query Hibernate sends for InvoiceRepository.findAll(spec, pageable), with the
+-- @EntityGraph loading client and currency in the same query.
+SELECT i.id, i.amount_paid, i.client_id, c.name, c.email, c.billing_email, c.payment_terms_days,
+       i.created_at, i.currency_code, cu.symbol, cu.minor_units, i.due_date, i.invoice_number,
+       i.issue_date, i.notes, i.paid_at, i.sent_at, i.status, i.subtotal, i.tax_total, i.total,
+       i.updated_at, i.version, i.void_reason, i.voided_at
+FROM invoice i
+JOIN client c ON c.id = i.client_id
+JOIN currency cu ON cu.code = i.currency_code
+WHERE i.status IN ('SENT', 'PARTIALLY_PAID')
+  AND i.due_date < DATE '2026-11-01'
+ORDER BY i.issue_date DESC, i.id DESC
+FETCH FIRST 20 ROWS ONLY;
+
+                                                                         QUERY PLAN                                                                          
+-------------------------------------------------------------------------------------------------------------------------------------------------------------
+ Limit  (cost=144992.18..144994.51 rows=20 width=299) (actual time=346.018..364.910 rows=20 loops=1)
+   Buffers: shared hit=103738
+   ->  Gather Merge  (cost=144992.18..207185.92 rows=533052 width=299) (actual time=337.755..356.645 rows=20 loops=1)
+         Workers Planned: 2
+         Workers Launched: 2
+         Buffers: shared hit=103738
+         ->  Sort  (cost=143992.16..144658.47 rows=266526 width=299) (actual time=325.809..325.811 rows=14 loops=3)
+               Sort Key: i.issue_date DESC, i.id DESC
+               Sort Method: top-N heapsort  Memory: 35kB
+               Buffers: shared hit=103738
+               Worker 0:  Sort Method: top-N heapsort  Memory: 36kB
+               Worker 1:  Sort Method: top-N heapsort  Memory: 37kB
+               ->  Hash Join  (cost=2034.54..136900.00 rows=266526 width=299) (actual time=12.052..269.636 rows=197348 loops=3)
+                     Hash Cond: (i.currency_code = cu.code)
+                     Buffers: shared hit=103650
+                     ->  Parallel Hash Join  (cost=2015.77..136173.99 rows=266526 width=273) (actual time=5.295..238.660 rows=197348 loops=3)
+                           Hash Cond: (i.client_id = c.id)
+                           Buffers: shared hit=103585
+                           ->  Parallel Seq Scan on invoice i  (cost=0.00..133458.54 rows=266526 width=189) (actual time=0.034..187.113 rows=197348 loops=3)
+                                 Filter: (((status)::text = ANY ('{SENT,PARTIALLY_PAID}'::text[])) AND (due_date < '2026-11-01'::date))
+                                 Rows Removed by Filter: 1469319
+                                 Buffers: shared hit=102207
+                           ->  Parallel Hash  (cost=1648.12..1648.12 rows=29412 width=92) (actual time=5.053..5.054 rows=16667 loops=3)
+                                 Buckets: 65536  Batches: 1  Memory Usage: 6080kB
+                                 Buffers: shared hit=1354
+                                 ->  Parallel Seq Scan on client c  (cost=0.00..1648.12 rows=29412 width=92) (actual time=0.006..6.885 rows=50000 loops=1)
+                                       Buffers: shared hit=1354
+                     ->  Hash  (cost=13.90..13.90 rows=390 width=42) (actual time=6.650..6.650 rows=8 loops=3)
+                           Buckets: 1024  Batches: 1  Memory Usage: 9kB
+                           Buffers: shared hit=3
+                           ->  Seq Scan on currency cu  (cost=0.00..13.90 rows=390 width=42) (actual time=6.637..6.638 rows=8 loops=3)
+                                 Buffers: shared hit=3
+ Settings: effective_cache_size = '6GB', work_mem = '64MB', random_page_cost = '1.1'
+ Planning:
+   Buffers: shared hit=14
+ Planning Time: 0.305 ms
+ JIT:
+   Functions: 64
+   Options: Inlining false, Optimization false, Expressions true, Deforming true
+   Timing: Generation 3.476 ms (Deform 2.054 ms), Inlining 0.000 ms, Optimization 1.523 ms, Emission 26.606 ms, Total 31.605 ms
+ Execution Time: 366.019 ms
+

@@ -1,0 +1,31 @@
+-- Case: 01-overdue-list
+-- Variant: after-count
+-- Query file: cases/01-overdue-list/count.sql
+ -- Measured at: 2026-11-01 03:00 UTC, 5,000,000 invoices, median 35.690 ms over 11 runs
+
+
+-- GET /api/v1/invoices?overdue=true: the count query Spring Data adds to fill "totalElements"
+-- and "totalPages" in the response. Same filter, no joins.
+SELECT count(i.id)
+FROM invoice i
+WHERE i.status IN ('SENT', 'PARTIALLY_PAID')
+  AND i.due_date < DATE '2026-11-01';
+
+                                                                                        QUERY PLAN                                                                                        
+------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+ Finalize Aggregate  (cost=13090.66..13090.67 rows=1 width=8) (actual time=35.821..40.193 rows=1 loops=1)
+   Buffers: shared hit=300022
+   ->  Gather  (cost=13090.44..13090.65 rows=2 width=8) (actual time=35.734..40.190 rows=3 loops=1)
+         Workers Planned: 2
+         Workers Launched: 2
+         Buffers: shared hit=300022
+         ->  Partial Aggregate  (cost=12090.44..12090.45 rows=1 width=8) (actual time=26.644..26.645 rows=1 loops=3)
+               Buffers: shared hit=300022
+               ->  Parallel Index Only Scan using perf_invoice_open_by_issue_date on invoice i  (cost=0.42..11444.69 rows=258303 width=8) (actual time=0.134..21.417 rows=197348 loops=3)
+                     Index Cond: (due_date < '2026-11-01'::date)
+                     Heap Fetches: 31
+                     Buffers: shared hit=300022
+ Settings: effective_cache_size = '6GB', work_mem = '64MB', random_page_cost = '1.1'
+ Planning Time: 0.081 ms
+ Execution Time: 40.247 ms
+

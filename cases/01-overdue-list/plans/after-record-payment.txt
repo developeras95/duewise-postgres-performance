@@ -1,0 +1,41 @@
+-- Case: 01-overdue-list
+-- Variant: after-record-payment
+-- Query file: cases/01-overdue-list/record-payment.sql
+ -- Measured at: 2026-11-01 03:00 UTC, 5,000,000 invoices, median 17.200 ms over 11 runs
+
+
+-- Write cost: what recording a payment does to the invoice row. 1,000 open invoices become PAID,
+-- the UPDATE Duewise runs after inserting each payment. Timed with rollback=true, so nothing changes.
+UPDATE invoice
+SET amount_paid = total, status = 'PAID', paid_at = TIMESTAMPTZ '2026-11-01 10:00+00',
+    updated_at = TIMESTAMPTZ '2026-11-01 10:00+00', version = version + 1
+WHERE id IN (SELECT id FROM invoice WHERE status = 'SENT' ORDER BY id LIMIT 1000);
+
+                                                                                QUERY PLAN                                                                                 
+---------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+ Update on invoice  (cost=681.62..3310.69 rows=0 width=0) (actual time=21.408..21.409 rows=0 loops=1)
+   Buffers: shared hit=40939 dirtied=21 written=21
+   I/O Timings: shared write=0.274
+   ->  Nested Loop  (cost=681.62..3310.69 rows=1000 width=128) (actual time=6.090..7.447 rows=1000 loops=1)
+         Buffers: shared hit=20638
+         ->  HashAggregate  (cost=681.18..691.18 rows=1000 width=40) (actual time=6.074..6.178 rows=1000 loops=1)
+               Group Key: "ANY_subquery".id
+               Batches: 1  Memory Usage: 193kB
+               Buffers: shared hit=16638
+               ->  Subquery Scan on "ANY_subquery"  (cost=0.43..678.68 rows=1000 width=40) (actual time=0.040..5.903 rows=1000 loops=1)
+                     Buffers: shared hit=16638
+                     ->  Limit  (cost=0.43..668.68 rows=1000 width=8) (actual time=0.037..5.813 rows=1000 loops=1)
+                           Buffers: shared hit=16638
+                           ->  Index Scan using invoice_pkey on invoice invoice_1  (cost=0.43..220876.58 rows=330528 width=8) (actual time=0.036..5.770 rows=1000 loops=1)
+                                 Filter: ((status)::text = 'SENT'::text)
+                                 Rows Removed by Filter: 14353
+                                 Buffers: shared hit=16638
+         ->  Index Scan using invoice_pkey on invoice  (cost=0.43..2.62 rows=1 width=30) (actual time=0.001..0.001 rows=1 loops=1000)
+               Index Cond: (id = "ANY_subquery".id)
+               Buffers: shared hit=4000
+ Settings: effective_cache_size = '6GB', work_mem = '64MB', random_page_cost = '1.1'
+ Planning:
+   Buffers: shared hit=9
+ Planning Time: 0.180 ms
+ Execution Time: 21.519 ms
+
