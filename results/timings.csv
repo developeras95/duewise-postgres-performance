@@ -5,3 +5,15 @@ measured_at,case,variant,invoices,runs,warmups,median_ms,min_ms,max_ms,planning_
 2026-11-01T03:00:43Z,01-overdue-list,after-page,5000000,11,3,0.561,0.549,0.668,0.236,20,136,0,Limit
 2026-11-01T03:00:43Z,01-overdue-list,after-count,5000000,11,3,35.690,35.153,36.994,0.089,1,300020,0,Aggregate
 2026-11-01T03:00:44Z,01-overdue-list,after-record-payment,5000000,11,3,17.200,16.525,18.759,0.143,0,41776,0,ModifyTable
+2026-11-01T03:11:02Z,02-client-statement,before-largest,5000000,11,3,94.734,93.209,100.916,0.165,36633,31580,0,Sort
+2026-11-01T03:11:03Z,02-client-statement,before-top-1pct,5000000,11,3,0.308,0.306,0.350,0.090,120,790,0,Sort
+2026-11-01T03:11:04Z,02-client-statement,before-median,5000000,11,3,0.058,0.055,0.091,0.086,4,48,0,Sort
+2026-11-01T03:11:04Z,02-client-statement,before-partial-payment,5000000,11,3,19.867,17.485,25.143,0.121,0,43641,0,ModifyTable
+2026-11-01T03:11:05Z,02-client-statement,after-lean-largest,5000000,11,3,22.504,20.477,24.611,0.123,36633,30152,0,Merge Join
+2026-11-01T03:11:06Z,02-client-statement,after-lean-top-1pct,5000000,11,3,0.093,0.085,0.102,0.101,120,126,0,Nested Loop
+2026-11-01T03:11:06Z,02-client-statement,after-lean-median,5000000,11,3,0.040,0.039,0.051,0.101,4,9,0,Nested Loop
+2026-11-01T03:11:06Z,02-client-statement,after-lean-partial-payment,5000000,11,3,24.060,22.282,32.275,0.148,0,46935,0,ModifyTable
+2026-11-01T03:11:07Z,02-client-statement,after-largest,5000000,11,3,7.142,7.023,8.612,0.107,36633,18744,0,Merge Join
+2026-11-01T03:11:08Z,02-client-statement,after-top-1pct,5000000,11,3,0.083,0.078,0.131,0.101,120,60,0,Nested Loop
+2026-11-01T03:11:08Z,02-client-statement,after-median,5000000,11,3,0.050,0.044,0.069,0.102,4,9,0,Nested Loop
+2026-11-01T03:11:08Z,02-client-statement,after-partial-payment,5000000,11,3,26.080,21.273,83.345,0.160,0,47042,0,ModifyTable

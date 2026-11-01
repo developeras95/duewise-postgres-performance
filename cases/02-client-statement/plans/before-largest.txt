@@ -1,0 +1,51 @@
+-- Case: 02-client-statement
+-- Variant: before-largest
+-- Query file: cases/02-client-statement/statement-largest.sql
+ -- Measured at: 2026-11-01 03:11 UTC, 5,000,000 invoices, median 94.734 ms over 11 runs
+
+
+-- GET /api/v1/clients/1/statement: the client's open invoices, exactly as StatementRepository sends
+-- them (Duewise v1.0.3), for the largest client (295,286 invoices, 36,633 open).
+SELECT i.id,
+       i.invoice_number,
+       i.currency_code,
+       c.minor_units,
+       i.issue_date,
+       i.due_date,
+       i.total - i.amount_paid                             AS balance_due,
+       GREATEST(CAST(DATE '2026-11-01' AS date) - i.due_date, 0) AS days_overdue
+FROM invoice i
+JOIN currency c ON c.code = i.currency_code
+WHERE i.client_id = 1
+  AND i.status IN ('SENT', 'PARTIALLY_PAID')
+ORDER BY i.currency_code, i.due_date, i.id;
+
+                                                                               QUERY PLAN                                                                                
+-------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+ Sort  (cost=47648.94..47746.25 rows=38923 width=74) (actual time=96.327..97.174 rows=36633 loops=1)
+   Sort Key: i.currency_code, i.due_date, i.id
+   Sort Method: quicksort  Memory: 4112kB
+   Buffers: shared hit=31580
+   ->  Hash Join  (cost=9546.94..44681.39 rows=38923 width=74) (actual time=38.376..71.150 rows=36633 loops=1)
+         Hash Cond: (i.currency_code = c.code)
+         Buffers: shared hit=31580
+         ->  Bitmap Heap Scan on invoice i  (cost=9528.16..44267.40 rows=38923 width=52) (actual time=38.353..62.880 rows=36633 loops=1)
+               Recheck Cond: ((client_id = 1) AND ((status)::text = ANY ('{SENT,PARTIALLY_PAID}'::text[])))
+               Heap Blocks: exact=28042
+               Buffers: shared hit=31579
+               ->  BitmapAnd  (cost=9528.16..9528.16 rows=38923 width=0) (actual time=35.813..35.814 rows=0 loops=1)
+                     Buffers: shared hit=3537
+                     ->  Bitmap Index Scan on ix_invoice_client  (cost=0.00..2494.78 rows=289607 width=0) (actual time=11.125..11.125 rows=296586 loops=1)
+                           Index Cond: (client_id = 1)
+                           Buffers: shared hit=234
+                     ->  Bitmap Index Scan on perf_invoice_open_by_issue_date  (cost=0.00..7013.67 rows=672248 width=0) (actual time=22.382..22.382 rows=669904 loops=1)
+                           Buffers: shared hit=3303
+         ->  Hash  (cost=13.90..13.90 rows=390 width=18) (actual time=0.012..0.013 rows=8 loops=1)
+               Buckets: 1024  Batches: 1  Memory Usage: 9kB
+               Buffers: shared hit=1
+               ->  Seq Scan on currency c  (cost=0.00..13.90 rows=390 width=18) (actual time=0.005..0.006 rows=8 loops=1)
+                     Buffers: shared hit=1
+ Settings: effective_cache_size = '6GB', work_mem = '64MB', random_page_cost = '1.1'
+ Planning Time: 0.131 ms
+ Execution Time: 98.745 ms
+

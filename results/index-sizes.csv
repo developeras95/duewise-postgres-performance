@@ -1,2 +1,6 @@
 measured_at,index,table,index_bytes,table_bytes
 2026-11-01T03:00:43Z,perf_invoice_open_by_issue_date,invoice,27197440,839786496
+2026-11-01T03:11:05Z,perf_invoice_client_statement_lean,invoice,27197440,844898304
+2026-11-01T03:11:05Z,perf_invoice_open_by_issue_date,invoice,27254784,844898304
+2026-11-01T03:11:07Z,perf_invoice_client_statement,invoice,57204736,847446016
+2026-11-01T03:11:07Z,perf_invoice_open_by_issue_date,invoice,27533312,847446016

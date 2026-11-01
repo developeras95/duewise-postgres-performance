@@ -1,0 +1,47 @@
+-- Case: 02-client-statement
+-- Variant: before-median
+-- Query file: cases/02-client-statement/statement-median.sql
+ -- Measured at: 2026-11-01 03:11 UTC, 5,000,000 invoices, median 0.058 ms over 11 runs
+
+
+-- GET /api/v1/clients/20250/statement: the client's open invoices, exactly as StatementRepository sends
+-- them (Duewise v1.0.3), for the median client (44 invoices, 4 open).
+SELECT i.id,
+       i.invoice_number,
+       i.currency_code,
+       c.minor_units,
+       i.issue_date,
+       i.due_date,
+       i.total - i.amount_paid                             AS balance_due,
+       GREATEST(CAST(DATE '2026-11-01' AS date) - i.due_date, 0) AS days_overdue
+FROM invoice i
+JOIN currency c ON c.code = i.currency_code
+WHERE i.client_id = 20250
+  AND i.status IN ('SENT', 'PARTIALLY_PAID')
+ORDER BY i.currency_code, i.due_date, i.id;
+
+                                                                 QUERY PLAN                                                                  
+---------------------------------------------------------------------------------------------------------------------------------------------
+ Sort  (cost=197.47..197.53 rows=23 width=74) (actual time=0.104..0.105 rows=4 loops=1)
+   Sort Key: i.currency_code, i.due_date, i.id
+   Sort Method: quicksort  Memory: 25kB
+   Buffers: shared hit=48
+   ->  Nested Loop  (cost=0.59..196.95 rows=23 width=74) (actual time=0.050..0.084 rows=4 loops=1)
+         Buffers: shared hit=48
+         ->  Index Scan using ix_invoice_client on invoice i  (cost=0.43..191.93 rows=23 width=52) (actual time=0.034..0.065 rows=4 loops=1)
+               Index Cond: (client_id = 20250)
+               Filter: ((status)::text = ANY ('{SENT,PARTIALLY_PAID}'::text[]))
+               Rows Removed by Filter: 40
+               Buffers: shared hit=46
+         ->  Memoize  (cost=0.16..0.75 rows=1 width=18) (actual time=0.004..0.004 rows=1 loops=4)
+               Cache Key: i.currency_code
+               Cache Mode: logical
+               Hits: 3  Misses: 1  Evictions: 0  Overflows: 0  Memory Usage: 1kB
+               Buffers: shared hit=2
+               ->  Index Scan using currency_pkey on currency c  (cost=0.15..0.74 rows=1 width=18) (actual time=0.012..0.012 rows=1 loops=1)
+                     Index Cond: (code = i.currency_code)
+                     Buffers: shared hit=2
+ Settings: effective_cache_size = '6GB', work_mem = '64MB', random_page_cost = '1.1'
+ Planning Time: 0.127 ms
+ Execution Time: 0.135 ms
+

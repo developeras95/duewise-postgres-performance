@@ -1,0 +1,41 @@
+-- Case: 02-client-statement
+-- Variant: after-lean-top-1pct
+-- Query file: cases/02-client-statement/statement-top-1pct.sql
+ -- Measured at: 2026-11-01 03:11 UTC, 5,000,000 invoices, median 0.093 ms over 11 runs
+
+
+-- GET /api/v1/clients/511/statement: the client's open invoices, exactly as StatementRepository sends
+-- them (Duewise v1.0.3), for the client at the top-1% boundary (788 invoices, 120 open).
+SELECT i.id,
+       i.invoice_number,
+       i.currency_code,
+       c.minor_units,
+       i.issue_date,
+       i.due_date,
+       i.total - i.amount_paid                             AS balance_due,
+       GREATEST(CAST(DATE '2026-11-01' AS date) - i.due_date, 0) AS days_overdue
+FROM invoice i
+JOIN currency c ON c.code = i.currency_code
+WHERE i.client_id = 511
+  AND i.status IN ('SENT', 'PARTIALLY_PAID')
+ORDER BY i.currency_code, i.due_date, i.id;
+
+                                                                       QUERY PLAN                                                                        
+---------------------------------------------------------------------------------------------------------------------------------------------------------
+ Nested Loop  (cost=0.58..31.24 rows=22 width=74) (actual time=0.035..0.209 rows=120 loops=1)
+   Buffers: shared hit=126
+   ->  Index Scan using perf_invoice_client_statement_lean on invoice i  (cost=0.42..26.11 rows=22 width=52) (actual time=0.019..0.157 rows=120 loops=1)
+         Index Cond: (client_id = 511)
+         Buffers: shared hit=124
+   ->  Memoize  (cost=0.16..0.78 rows=1 width=18) (actual time=0.000..0.000 rows=1 loops=120)
+         Cache Key: i.currency_code
+         Cache Mode: logical
+         Hits: 119  Misses: 1  Evictions: 0  Overflows: 0  Memory Usage: 1kB
+         Buffers: shared hit=2
+         ->  Index Scan using currency_pkey on currency c  (cost=0.15..0.77 rows=1 width=18) (actual time=0.011..0.011 rows=1 loops=1)
+               Index Cond: (code = i.currency_code)
+               Buffers: shared hit=2
+ Settings: effective_cache_size = '6GB', work_mem = '64MB', random_page_cost = '1.1'
+ Planning Time: 0.141 ms
+ Execution Time: 0.241 ms
+

@@ -1,0 +1,37 @@
+-- Case: 02-client-statement
+-- Variant: after-largest
+-- Query file: cases/02-client-statement/statement-largest.sql
+ -- Measured at: 2026-11-01 03:11 UTC, 5,000,000 invoices, median 7.142 ms over 11 runs
+
+
+-- GET /api/v1/clients/1/statement: the client's open invoices, exactly as StatementRepository sends
+-- them (Duewise v1.0.3), for the largest client (295,286 invoices, 36,633 open).
+SELECT i.id,
+       i.invoice_number,
+       i.currency_code,
+       c.minor_units,
+       i.issue_date,
+       i.due_date,
+       i.total - i.amount_paid                             AS balance_due,
+       GREATEST(CAST(DATE '2026-11-01' AS date) - i.due_date, 0) AS days_overdue
+FROM invoice i
+JOIN currency c ON c.code = i.currency_code
+WHERE i.client_id = 1
+  AND i.status IN ('SENT', 'PARTIALLY_PAID')
+ORDER BY i.currency_code, i.due_date, i.id;
+
+                                                                           QUERY PLAN                                                                           
+----------------------------------------------------------------------------------------------------------------------------------------------------------------
+ Merge Join  (cost=0.57..2354.11 rows=38643 width=74) (actual time=0.042..8.685 rows=36633 loops=1)
+   Merge Cond: (i.currency_code = c.code)
+   Buffers: shared hit=18744
+   ->  Index Only Scan using perf_invoice_client_statement on invoice i  (cost=0.42..1561.07 rows=38643 width=52) (actual time=0.025..3.658 rows=36633 loops=1)
+         Index Cond: (client_id = 1)
+         Heap Fetches: 1
+         Buffers: shared hit=18742
+   ->  Index Scan using currency_pkey on currency c  (cost=0.15..19.20 rows=390 width=18) (actual time=0.011..0.012 rows=4 loops=1)
+         Buffers: shared hit=2
+ Settings: effective_cache_size = '6GB', work_mem = '64MB', random_page_cost = '1.1'
+ Planning Time: 0.138 ms
+ Execution Time: 9.702 ms
+
