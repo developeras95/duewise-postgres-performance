@@ -1,0 +1,22 @@
+-- Case: 04-invoice-list
+-- Variant: count-estimate
+-- Query file: cases/04-invoice-list/count-estimate.sql
+ -- Measured at: 2026-11-15 12:08 UTC, 5,000,002 invoices, median 0.017 ms over 11 runs
+
+
+-- An alternative to counting: PostgreSQL's own estimate of the table's row count, kept up to date
+-- by autovacuum and ANALYZE. Accurate to within a fraction of a percent on this table, and free.
+-- Only usable for the unfiltered list, and shown as "about 5,000,000".
+SELECT reltuples::bigint AS estimated_invoices
+FROM pg_class
+WHERE oid = 'invoice'::regclass;
+
+                                                         QUERY PLAN                                                          
+-----------------------------------------------------------------------------------------------------------------------------
+ Index Scan using pg_class_oid_index on pg_class  (cost=0.27..2.49 rows=1 width=8) (actual time=0.021..0.021 rows=1 loops=1)
+   Index Cond: (oid = '16547'::oid)
+   Buffers: shared hit=3
+ Settings: effective_cache_size = '6GB', work_mem = '64MB', random_page_cost = '1.1'
+ Planning Time: 0.047 ms
+ Execution Time: 0.035 ms
+

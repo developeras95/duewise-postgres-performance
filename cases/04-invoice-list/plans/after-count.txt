@@ -1,0 +1,28 @@
+-- Case: 04-invoice-list
+-- Variant: after-count
+-- Query file: cases/04-invoice-list/count.sql
+ -- Measured at: 2026-11-15 12:08 UTC, 5,000,002 invoices, median 200.812 ms over 11 runs
+
+
+-- GET /api/v1/invoices (no filters): the count query Spring Data adds to fill "totalElements"
+-- and "totalPages". With no filter, it counts every invoice.
+SELECT count(i.id)
+FROM invoice i;
+
+                                                                                QUERY PLAN                                                                                
+--------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+ Finalize Aggregate  (cost=72000.79..72000.80 rows=1 width=8) (actual time=245.003..251.354 rows=1 loops=1)
+   Buffers: shared hit=3663435
+   ->  Gather  (cost=72000.57..72000.78 rows=2 width=8) (actual time=244.890..251.348 rows=3 loops=1)
+         Workers Planned: 2
+         Workers Launched: 2
+         Buffers: shared hit=3663435
+         ->  Partial Aggregate  (cost=71000.57..71000.58 rows=1 width=8) (actual time=235.875..235.876 rows=1 loops=3)
+               Buffers: shared hit=3663435
+               ->  Parallel Index Only Scan using invoice_pkey on invoice i  (cost=0.43..65798.63 rows=2080777 width=8) (actual time=0.026..190.185 rows=1666667 loops=3)
+                     Heap Fetches: 0
+                     Buffers: shared hit=3663435
+ Settings: effective_cache_size = '6GB', work_mem = '64MB', random_page_cost = '1.1'
+ Planning Time: 0.058 ms
+ Execution Time: 251.393 ms
+

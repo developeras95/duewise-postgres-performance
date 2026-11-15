@@ -17,3 +17,13 @@ measured_at,case,variant,invoices,runs,warmups,median_ms,min_ms,max_ms,planning_
 2026-11-01T03:11:08Z,02-client-statement,after-top-1pct,5000000,11,3,0.083,0.078,0.131,0.101,120,60,0,Nested Loop
 2026-11-01T03:11:08Z,02-client-statement,after-median,5000000,11,3,0.050,0.044,0.069,0.102,4,9,0,Nested Loop
 2026-11-01T03:11:08Z,02-client-statement,after-partial-payment,5000000,11,3,26.080,21.273,83.345,0.160,0,47042,0,ModifyTable
+2026-11-15T12:06:10Z,04-invoice-list,before-page,5000002,11,3,958.773,934.840,977.385,0.321,20,105290,0,Limit
+2026-11-15T12:08:03Z,04-invoice-list,before-count,5000002,11,3,202.189,200.193,213.020,0.062,1,3663923,0,Aggregate
+2026-11-15T12:08:06Z,04-invoice-list,before-page-501,5000002,11,3,1083.406,1052.339,1104.611,0.316,20,105290,0,Limit
+2026-11-15T12:08:23Z,04-invoice-list,before-new-drafts,5000002,11,3,57.430,42.908,99.534,0.051,0,17267,26,ModifyTable
+2026-11-15T12:08:26Z,04-invoice-list,after-page,5000002,11,3,0.420,0.392,0.470,0.245,20,86,0,Limit
+2026-11-15T12:08:26Z,04-invoice-list,after-count,5000002,11,3,200.812,199.810,204.841,0.066,1,3663466,0,Aggregate
+2026-11-15T12:08:30Z,04-invoice-list,after-page-501,5000002,11,3,11.538,11.186,12.017,0.240,20,26995,0,Limit
+2026-11-15T12:08:30Z,04-invoice-list,after-keyset-501,5000002,11,3,0.405,0.402,0.422,0.294,20,82,0,Limit
+2026-11-15T12:08:30Z,04-invoice-list,count-estimate,5000002,11,3,0.017,0.017,0.025,0.009,1,3,0,Index Scan
+2026-11-15T12:08:30Z,04-invoice-list,after-new-drafts,5000002,11,3,35.110,33.329,37.837,0.036,0,20291,0,ModifyTable

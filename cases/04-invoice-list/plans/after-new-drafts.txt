@@ -1,0 +1,27 @@
+-- Case: 04-invoice-list
+-- Variant: after-new-drafts
+-- Query file: cases/04-invoice-list/new-drafts.sql
+ -- Measured at: 2026-11-15 12:08 UTC, 5,000,002 invoices, median 35.110 ms over 11 runs
+
+
+-- Write cost: creating invoices. 1,000 new drafts, as POST /api/v1/invoices inserts them (without
+-- their lines, which live in another table). Every index on invoice has to take each new row.
+-- Timed with rollback=true, so nothing changes. The ids are given (far above the generated ones)
+-- rather than drawn from the identity column, so the runs do not use up its numbers.
+INSERT INTO invoice (id, client_id, issue_date, due_date, currency_code, status)
+OVERRIDING SYSTEM VALUE
+SELECT 900000000 + g, 1 + g % 50000, DATE '2026-11-01', DATE '2026-12-01', 'INR', 'DRAFT'
+FROM generate_series(1, 1000) AS g;
+
+                                                           QUERY PLAN                                                           
+--------------------------------------------------------------------------------------------------------------------------------
+ Insert on invoice  (cost=0.00..27.50 rows=0 width=0) (actual time=8.897..8.897 rows=0 loops=1)
+   Buffers: shared hit=20264 dirtied=8 written=8
+   I/O Timings: shared write=0.084
+   ->  Function Scan on generate_series g  (cost=0.00..27.50 rows=1000 width=1328) (actual time=0.045..0.178 rows=1000 loops=1)
+ Settings: effective_cache_size = '6GB', work_mem = '64MB', random_page_cost = '1.1'
+ Planning Time: 0.044 ms
+ Trigger for constraint invoice_client_id_fkey: time=13.792 calls=1000
+ Trigger for constraint invoice_currency_code_fkey: time=13.174 calls=1000
+ Execution Time: 35.973 ms
+
