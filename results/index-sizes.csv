@@ -7,3 +7,14 @@ measured_at,index,table,index_bytes,table_bytes
 2026-11-15T12:08:26Z,perf_invoice_by_issue_date,invoice,157736960,849993728
 2026-11-15T12:08:26Z,perf_invoice_client_statement,invoice,64774144,849993728
 2026-11-15T12:08:26Z,perf_invoice_open_by_issue_date,invoice,28033024,849993728
+2026-11-15T12:32:35Z,perf_client_email_trgm,client,4063232,11091968
+2026-11-15T12:32:35Z,perf_client_name_trgm,client,2859008,11091968
+2026-11-15T12:32:35Z,perf_invoice_by_issue_date,invoice,157736960,849993728
+2026-11-15T12:32:35Z,perf_invoice_client_statement,invoice,64774144,849993728
+2026-11-15T12:32:35Z,perf_invoice_open_by_issue_date,invoice,28033024,849993728
+2026-11-15T12:32:39Z,perf_client_by_name,client,2621440,11091968
+2026-11-15T12:32:39Z,perf_client_email_trgm,client,8724480,11091968
+2026-11-15T12:32:39Z,perf_client_name_trgm,client,7626752,11091968
+2026-11-15T12:32:39Z,perf_invoice_by_issue_date,invoice,157736960,849993728
+2026-11-15T12:32:39Z,perf_invoice_client_statement,invoice,64774144,849993728
+2026-11-15T12:32:39Z,perf_invoice_open_by_issue_date,invoice,28033024,849993728

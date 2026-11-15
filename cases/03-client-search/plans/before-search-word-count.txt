@@ -1,0 +1,24 @@
+-- Case: 03-client-search
+-- Variant: before-search-word-count
+-- Query file: cases/03-client-search/search-word-count.sql
+ -- Measured at: 2026-11-15 12:32 UTC, 5,000,002 invoices, median 18.846 ms over 11 runs
+
+
+-- GET /api/v1/clients?q=agro: the count Spring Data adds for totalElements.
+SELECT count(c.id)
+FROM client c
+WHERE lower(c.name) LIKE '%agro%' ESCAPE '\'
+   OR lower(c.email) LIKE '%agro%' ESCAPE '\';
+
+                                                    QUERY PLAN                                                    
+------------------------------------------------------------------------------------------------------------------
+ Aggregate  (cost=2361.28..2361.29 rows=1 width=8) (actual time=19.927..19.927 rows=1 loops=1)
+   Buffers: shared hit=1354
+   ->  Seq Scan on client c  (cost=0.00..2354.02 rows=2905 width=8) (actual time=0.054..19.845 rows=2492 loops=1)
+         Filter: ((lower((name)::text) ~~ '%agro%'::text) OR (lower((email)::text) ~~ '%agro%'::text))
+         Rows Removed by Filter: 47509
+         Buffers: shared hit=1354
+ Settings: effective_cache_size = '6GB', work_mem = '64MB', random_page_cost = '1.1'
+ Planning Time: 0.087 ms
+ Execution Time: 19.941 ms
+

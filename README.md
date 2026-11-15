@@ -11,8 +11,7 @@ with realistic data, finds the queries that slow down at scale, and fixes each o
 `EXPLAIN (ANALYZE, BUFFERS)` plans and timings from before and after, together with its cost: index size and
 slower writes. The indexes that earn their place go back into Duewise as a migration.
 
-> Work in progress: cases 1, 2 and 4 are done; cases 3 and 5 and the migration back into Duewise
-> are next.
+> Work in progress: cases 1 to 4 are done; case 5 and the migration back into Duewise are next.
 
 ## The cases
 
@@ -23,7 +22,7 @@ found and what it costs.
 | --- | --- | --- | --- | --- |
 | [1](cases/01-overdue-list/README.md) | Overdue invoices list | Reads every invoice to find the open, overdue ones | Partial index on open invoices, in the list's order | Page **339 ms → 0.56 ms**, count 195 → 36 ms; 26 MB |
 | [2](cases/02-client-statement/README.md) | Client statement | The largest client's statement reads ~300,000 invoices and intersects two indexes | Partial covering index on (client, currency, due date) | Largest client **95 ms → 7.1 ms**; 55 MB; part payments +30% |
-| 3 | Client search by part of name or email | `LIKE '%term%'` cannot use a B-tree index | Trigram (`pg_trgm`) GIN index | To do |
+| [3](cases/03-client-search/README.md) | Client search by part of name or email | `LIKE '%term%'` cannot use a B-tree index, so every keystroke reads every client | Trigram (`pg_trgm`) GIN indexes on name and email | Search **18–20 ms → 0.04–1.8 ms**; 6.6 MB; new clients +34%. An index on the list's order was tested and left out: it made some searches slower than no index |
 | [4](cases/04-invoice-list/README.md) | Invoice list as it first opens, and deep pages | Reads and sorts all 5M invoices for 20 rows; `OFFSET` throws away every earlier row | Index in the list's order; keyset paging; estimated count | Page **959 ms → 0.42 ms**, page 501 1,083 → 11.5 ms (keyset 0.41 ms); 150 MB. The 200 ms count needs an API change |
 | 5 | Monthly revenue report | Aggregates millions of payments | BRIN index on `paid_on`, compared with a materialized view | To do |
 

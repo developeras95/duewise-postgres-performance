@@ -1,0 +1,29 @@
+-- Case: 03-client-search
+-- Variant: trgm-list
+-- Query file: cases/03-client-search/list.sql
+ -- Measured at: 2026-11-15 12:32 UTC, 5,000,002 invoices, median 12.988 ms over 11 runs
+
+
+-- GET /api/v1/clients (no search text): the first 20 clients by name. What the client picker shows
+-- when it opens, and the Clients screen's first page.
+SELECT c.id, c.address_line1, c.address_line2, c.city, c.country_code, c.postal_code, c.state,
+       c.billing_email, c.created_at, c.default_currency_code, c.email, c.name, c.payment_terms_days,
+       c.phone, c.reminders_enabled, c.tax_id, c.updated_at, c.version
+FROM client c
+ORDER BY c.name, c.id
+FETCH FIRST 20 ROWS ONLY;
+
+                                                        QUERY PLAN                                                         
+---------------------------------------------------------------------------------------------------------------------------
+ Limit  (cost=3184.52..3184.57 rows=20 width=610) (actual time=15.600..15.602 rows=20 loops=1)
+   Buffers: shared hit=1354
+   ->  Sort  (cost=3184.52..3309.52 rows=50001 width=610) (actual time=15.599..15.600 rows=20 loops=1)
+         Sort Key: name, id
+         Sort Method: top-N heapsort  Memory: 33kB
+         Buffers: shared hit=1354
+         ->  Seq Scan on client c  (cost=0.00..1854.01 rows=50001 width=610) (actual time=0.007..7.151 rows=50001 loops=1)
+               Buffers: shared hit=1354
+ Settings: effective_cache_size = '6GB', work_mem = '64MB', random_page_cost = '1.1'
+ Planning Time: 0.064 ms
+ Execution Time: 15.624 ms
+

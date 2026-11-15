@@ -1,0 +1,26 @@
+-- Case: 03-client-search
+-- Variant: before-new-clients
+-- Query file: cases/03-client-search/new-clients.sql
+ -- Measured at: 2026-11-15 12:32 UTC, 5,000,002 invoices, median 17.420 ms over 11 runs
+
+
+-- Write cost: adding clients. 1,000 new clients as POST /api/v1/clients inserts them; every index on
+-- client takes each one, and trigram indexes take one entry per three-letter piece of the text.
+-- Timed with rollback=true, so nothing changes. The ids are given rather than drawn from the
+-- identity column, so the runs do not use up its numbers.
+INSERT INTO client (id, name, email, default_currency_code, payment_terms_days)
+OVERRIDING SYSTEM VALUE
+SELECT 900000000 + g, 'Perf Test Traders ' || g, 'perf.test.' || g || '@example.com', 'INR', 30
+FROM generate_series(1, 1000) AS g;
+
+                                                           QUERY PLAN                                                           
+--------------------------------------------------------------------------------------------------------------------------------
+ Insert on client  (cost=0.00..42.50 rows=0 width=0) (actual time=4.277..4.278 rows=0 loops=1)
+   Buffers: shared hit=9569 dirtied=15 written=15
+   I/O Timings: shared write=0.133
+   ->  Function Scan on generate_series g  (cost=0.00..42.50 rows=1000 width=3039) (actual time=0.059..0.281 rows=1000 loops=1)
+ Settings: effective_cache_size = '6GB', work_mem = '64MB', random_page_cost = '1.1'
+ Planning Time: 0.069 ms
+ Trigger for constraint client_default_currency_code_fkey: time=14.128 calls=1000
+ Execution Time: 18.480 ms
+

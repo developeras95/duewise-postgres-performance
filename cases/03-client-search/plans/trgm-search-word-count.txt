@@ -1,0 +1,34 @@
+-- Case: 03-client-search
+-- Variant: trgm-search-word-count
+-- Query file: cases/03-client-search/search-word-count.sql
+ -- Measured at: 2026-11-15 12:32 UTC, 5,000,002 invoices, median 1.161 ms over 11 runs
+
+
+-- GET /api/v1/clients?q=agro: the count Spring Data adds for totalElements.
+SELECT count(c.id)
+FROM client c
+WHERE lower(c.name) LIKE '%agro%' ESCAPE '\'
+   OR lower(c.email) LIKE '%agro%' ESCAPE '\';
+
+                                                                    QUERY PLAN                                                                    
+--------------------------------------------------------------------------------------------------------------------------------------------------
+ Aggregate  (cost=1511.23..1511.24 rows=1 width=8) (actual time=1.753..1.754 rows=1 loops=1)
+   Buffers: shared hit=1174
+   ->  Bitmap Heap Scan on client c  (cost=43.10..1498.84 rows=4958 width=8) (actual time=0.455..1.684 rows=2492 loops=1)
+         Recheck Cond: ((lower((name)::text) ~~ '%agro%'::text) OR (lower((email)::text) ~~ '%agro%'::text))
+         Heap Blocks: exact=1160
+         Buffers: shared hit=1174
+         ->  BitmapOr  (cost=43.10..43.10 rows=5087 width=0) (actual time=0.387..0.387 rows=0 loops=1)
+               Buffers: shared hit=14
+               ->  Bitmap Index Scan on perf_client_name_trgm  (cost=0.00..21.00 rows=2562 width=0) (actual time=0.261..0.261 rows=2492 loops=1)
+                     Index Cond: (lower((name)::text) ~~ '%agro%'::text)
+                     Buffers: shared hit=7
+               ->  Bitmap Index Scan on perf_client_email_trgm  (cost=0.00..19.62 rows=2525 width=0) (actual time=0.125..0.125 rows=2492 loops=1)
+                     Index Cond: (lower((email)::text) ~~ '%agro%'::text)
+                     Buffers: shared hit=7
+ Settings: effective_cache_size = '6GB', work_mem = '64MB', random_page_cost = '1.1'
+ Planning:
+   Buffers: shared hit=2
+ Planning Time: 0.115 ms
+ Execution Time: 1.788 ms
+

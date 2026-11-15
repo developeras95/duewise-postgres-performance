@@ -1,0 +1,44 @@
+-- Case: 03-client-search
+-- Variant: trgm-name-search-email
+-- Query file: cases/03-client-search/search-email.sql
+ -- Measured at: 2026-11-15 12:32 UTC, 5,000,002 invoices, median 0.034 ms over 11 runs
+
+
+-- GET /api/v1/clients?q=17704: one client, found by a part of its email
+-- (bluebird.agro.17704@example.com). The page query Hibernate sends for ClientRepository.search,
+-- sorted by name as the client picker and the Clients screen ask for it.
+SELECT c.id, c.address_line1, c.address_line2, c.city, c.country_code, c.postal_code, c.state,
+       c.billing_email, c.created_at, c.default_currency_code, c.email, c.name, c.payment_terms_days,
+       c.phone, c.reminders_enabled, c.tax_id, c.updated_at, c.version
+FROM client c
+WHERE lower(c.name) LIKE '%17704%' ESCAPE '\'
+   OR lower(c.email) LIKE '%17704%' ESCAPE '\'
+ORDER BY c.name, c.id
+FETCH FIRST 20 ROWS ONLY;
+
+                                                                   QUERY PLAN                                                                    
+-------------------------------------------------------------------------------------------------------------------------------------------------
+ Limit  (cost=31.08..31.10 rows=10 width=212) (actual time=0.047..0.048 rows=1 loops=1)
+   Buffers: shared hit=15
+   ->  Sort  (cost=31.08..31.10 rows=10 width=212) (actual time=0.047..0.047 rows=1 loops=1)
+         Sort Key: name, id
+         Sort Method: quicksort  Memory: 25kB
+         Buffers: shared hit=15
+         ->  Bitmap Heap Scan on client c  (cost=19.80..30.91 rows=10 width=212) (actual time=0.042..0.042 rows=1 loops=1)
+               Recheck Cond: ((lower((name)::text) ~~ '%17704%'::text) OR (lower((email)::text) ~~ '%17704%'::text))
+               Heap Blocks: exact=1
+               Buffers: shared hit=15
+               ->  BitmapOr  (cost=19.80..19.80 rows=10 width=0) (actual time=0.034..0.034 rows=0 loops=1)
+                     Buffers: shared hit=14
+                     ->  Bitmap Index Scan on perf_client_name_trgm  (cost=0.00..9.90 rows=5 width=0) (actual time=0.010..0.010 rows=0 loops=1)
+                           Index Cond: (lower((name)::text) ~~ '%17704%'::text)
+                           Buffers: shared hit=7
+                     ->  Bitmap Index Scan on perf_client_email_trgm  (cost=0.00..9.90 rows=5 width=0) (actual time=0.024..0.024 rows=1 loops=1)
+                           Index Cond: (lower((email)::text) ~~ '%17704%'::text)
+                           Buffers: shared hit=7
+ Settings: effective_cache_size = '6GB', work_mem = '64MB', random_page_cost = '1.1'
+ Planning:
+   Buffers: shared hit=2
+ Planning Time: 0.129 ms
+ Execution Time: 0.072 ms
+
