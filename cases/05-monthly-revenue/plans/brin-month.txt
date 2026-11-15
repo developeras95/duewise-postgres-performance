@@ -1,0 +1,61 @@
+-- Case: 05-monthly-revenue
+-- Variant: brin-month
+-- Query file: cases/05-monthly-revenue/month.sql
+ -- Measured at: 2026-11-15 12:56 UTC, 5,000,002 invoices, median 139.252 ms over 11 runs
+
+
+-- A revenue report Duewise does not have yet: money received per month and currency, here for
+-- one month (October 2026, 156,345 payments). Currency is on the invoice, so every payment is joined
+-- to its invoice: amounts in different currencies cannot be added together.
+SELECT date_trunc('month', p.paid_on)::date AS month, i.currency_code,
+       count(*) AS payments, sum(p.amount) AS received
+FROM payment p
+JOIN invoice i ON i.id = p.invoice_id
+WHERE p.paid_on >= DATE '2026-10-01' AND p.paid_on < DATE '2026-11-01'
+GROUP BY 1, 2
+ORDER BY 1, 2;
+
+                                                                               QUERY PLAN                                                                                
+-------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+ Finalize GroupAggregate  (cost=128927.71..130448.89 rows=5465 width=48) (actual time=144.887..157.373 rows=5 loops=1)
+   Group Key: ((date_trunc('month'::text, (p.paid_on)::timestamp with time zone))::date), i.currency_code
+   Buffers: shared hit=627698
+   ->  Gather Merge  (cost=128927.71..130202.96 rows=10930 width=48) (actual time=144.875..157.356 rows=15 loops=1)
+         Workers Planned: 2
+         Workers Launched: 2
+         Buffers: shared hit=627698
+         ->  Sort  (cost=127927.69..127941.35 rows=5465 width=48) (actual time=133.863..133.864 rows=5 loops=3)
+               Sort Key: ((date_trunc('month'::text, (p.paid_on)::timestamp with time zone))::date), i.currency_code
+               Sort Method: quicksort  Memory: 25kB
+               Buffers: shared hit=627698
+               Worker 0:  Sort Method: quicksort  Memory: 25kB
+               Worker 1:  Sort Method: quicksort  Memory: 25kB
+               ->  Partial HashAggregate  (cost=127479.12..127588.42 rows=5465 width=48) (actual time=133.804..133.817 rows=5 loops=3)
+                     Group Key: (date_trunc('month'::text, (p.paid_on)::timestamp with time zone))::date, i.currency_code
+                     Batches: 1  Memory Usage: 217kB
+                     Buffers: shared hit=627668
+                     Worker 0:  Batches: 1  Memory Usage: 217kB
+                     Worker 1:  Batches: 1  Memory Usage: 217kB
+                     ->  Nested Loop  (cost=42.81..126834.74 rows=64438 width=16) (actual time=5.648..126.010 rows=52115 loops=3)
+                           Buffers: shared hit=627668
+                           ->  Parallel Bitmap Heap Scan on payment p  (cost=42.38..48397.27 rows=64438 width=20) (actual time=5.608..10.744 rows=52115 loops=3)
+                                 Recheck Cond: ((paid_on >= '2026-10-01'::date) AND (paid_on < '2026-11-01'::date))
+                                 Rows Removed by Index Recheck: 19912
+                                 Heap Blocks: lossy=1259
+                                 Buffers: shared hit=2286
+                                 ->  Bitmap Index Scan on perf_payment_paid_on_brin  (cost=0.00..3.72 rows=162383 width=0) (actual time=0.324..0.325 rows=22840 loops=1)
+                                       Index Cond: ((paid_on >= '2026-10-01'::date) AND (paid_on < '2026-11-01'::date))
+                                       Buffers: shared hit=2
+                           ->  Index Scan using invoice_pkey on invoice i  (cost=0.43..1.21 rows=1 width=12) (actual time=0.002..0.002 rows=1 loops=156345)
+                                 Index Cond: (id = p.invoice_id)
+                                 Buffers: shared hit=625382
+ Settings: effective_cache_size = '6GB', work_mem = '64MB', random_page_cost = '1.1'
+ Planning:
+   Buffers: shared hit=19
+ Planning Time: 0.247 ms
+ JIT:
+   Functions: 39
+   Options: Inlining false, Optimization false, Expressions true, Deforming true
+   Timing: Generation 2.223 ms (Deform 0.649 ms), Inlining 0.000 ms, Optimization 0.679 ms, Emission 15.771 ms, Total 18.674 ms
+ Execution Time: 158.298 ms
+

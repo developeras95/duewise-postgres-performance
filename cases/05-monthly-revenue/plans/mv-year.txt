@@ -1,0 +1,21 @@
+-- Case: 05-monthly-revenue
+-- Variant: mv-year
+-- Query file: cases/05-monthly-revenue/mv-year.sql
+ -- Measured at: 2026-11-15 12:56 UTC, 5,000,002 invoices, median 0.021 ms over 11 runs
+
+
+-- The report for the last twelve months, read from the materialized view (fix-mv.sql).
+SELECT month, currency_code, payments, received
+FROM perf_monthly_revenue
+WHERE month >= DATE '2025-11-01' AND month < DATE '2026-11-01'
+ORDER BY 1, 2;
+
+                                                                    QUERY PLAN                                                                    
+--------------------------------------------------------------------------------------------------------------------------------------------------
+ Index Scan using perf_monthly_revenue_key on perf_monthly_revenue  (cost=0.14..4.03 rows=60 width=26) (actual time=0.021..0.026 rows=60 loops=1)
+   Index Cond: ((month >= '2025-11-01'::date) AND (month < '2026-11-01'::date))
+   Buffers: shared hit=3
+ Settings: effective_cache_size = '6GB', work_mem = '64MB', random_page_cost = '1.1'
+ Planning Time: 0.076 ms
+ Execution Time: 0.047 ms
+

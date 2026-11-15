@@ -1,0 +1,53 @@
+-- Case: 05-monthly-revenue
+-- Variant: btree-month
+-- Query file: cases/05-monthly-revenue/month.sql
+ -- Measured at: 2026-11-15 12:56 UTC, 5,000,002 invoices, median 134.083 ms over 11 runs
+
+
+-- A revenue report Duewise does not have yet: money received per month and currency, here for
+-- one month (October 2026, 156,345 payments). Currency is on the invoice, so every payment is joined
+-- to its invoice: amounts in different currencies cannot be added together.
+SELECT date_trunc('month', p.paid_on)::date AS month, i.currency_code,
+       count(*) AS payments, sum(p.amount) AS received
+FROM payment p
+JOIN invoice i ON i.id = p.invoice_id
+WHERE p.paid_on >= DATE '2026-10-01' AND p.paid_on < DATE '2026-11-01'
+GROUP BY 1, 2
+ORDER BY 1, 2;
+
+                                                                                       QUERY PLAN                                                                                       
+----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+ Finalize GroupAggregate  (cost=79219.35..80741.93 rows=5470 width=48) (actual time=117.851..128.705 rows=5 loops=1)
+   Group Key: ((date_trunc('month'::text, (p.paid_on)::timestamp with time zone))::date), i.currency_code
+   Buffers: shared hit=626339
+   ->  Gather Merge  (cost=79219.35..80495.78 rows=10940 width=48) (actual time=117.842..128.692 rows=15 loops=1)
+         Workers Planned: 2
+         Workers Launched: 2
+         Buffers: shared hit=626339
+         ->  Sort  (cost=78219.33..78233.00 rows=5470 width=48) (actual time=108.079..108.080 rows=5 loops=3)
+               Sort Key: ((date_trunc('month'::text, (p.paid_on)::timestamp with time zone))::date), i.currency_code
+               Sort Method: quicksort  Memory: 25kB
+               Buffers: shared hit=626339
+               Worker 0:  Sort Method: quicksort  Memory: 25kB
+               Worker 1:  Sort Method: quicksort  Memory: 25kB
+               ->  Partial HashAggregate  (cost=77770.32..77879.72 rows=5470 width=48) (actual time=108.021..108.031 rows=5 loops=3)
+                     Group Key: (date_trunc('month'::text, (p.paid_on)::timestamp with time zone))::date, i.currency_code
+                     Batches: 1  Memory Usage: 217kB
+                     Buffers: shared hit=626309
+                     Worker 0:  Batches: 1  Memory Usage: 217kB
+                     Worker 1:  Batches: 1  Memory Usage: 217kB
+                     ->  Nested Loop  (cost=0.86..77176.61 rows=59371 width=16) (actual time=0.063..100.509 rows=52115 loops=3)
+                           Buffers: shared hit=626309
+                           ->  Parallel Index Only Scan using perf_payment_paid_on on payment p  (cost=0.43..2950.74 rows=59371 width=20) (actual time=0.026..3.727 rows=52115 loops=3)
+                                 Index Cond: ((paid_on >= '2026-10-01'::date) AND (paid_on < '2026-11-01'::date))
+                                 Heap Fetches: 0
+                                 Buffers: shared hit=927
+                           ->  Index Scan using invoice_pkey on invoice i  (cost=0.43..1.24 rows=1 width=12) (actual time=0.002..0.002 rows=1 loops=156345)
+                                 Index Cond: (id = p.invoice_id)
+                                 Buffers: shared hit=625382
+ Settings: effective_cache_size = '6GB', work_mem = '64MB', random_page_cost = '1.1'
+ Planning:
+   Buffers: shared hit=26
+ Planning Time: 0.271 ms
+ Execution Time: 128.887 ms
+

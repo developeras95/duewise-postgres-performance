@@ -48,3 +48,14 @@ measured_at,case,variant,invoices,runs,warmups,median_ms,min_ms,max_ms,planning_
 2026-11-15T12:32:40Z,03-client-search,trgm-name-search-late,5000002,11,3,23.128,22.288,26.259,0.084,20,48361,0,Limit
 2026-11-15T12:32:41Z,03-client-search,trgm-name-search-short,5000002,11,3,0.031,0.027,0.035,0.066,20,23,0,Limit
 2026-11-15T12:32:41Z,03-client-search,trgm-name-new-clients,5000002,11,3,23.429,22.016,47.468,0.041,0,17098,0,ModifyTable
+2026-11-15T12:55:40Z,05-monthly-revenue,before-month,5000002,11,3,184.720,180.075,190.679,0.253,5,672679,0,Aggregate
+2026-11-15T12:55:43Z,05-monthly-revenue,before-year,5000002,11,3,766.758,753.682,814.825,0.268,60,148615,2465,Aggregate
+2026-11-15T12:55:55Z,05-monthly-revenue,before-record-payments,5000002,11,3,31.583,28.970,51.031,0.041,0,9948,0,ModifyTable
+2026-11-15T12:55:58Z,05-monthly-revenue,btree-month,5000002,11,3,134.083,128.953,140.656,0.284,5,626339,0,Aggregate
+2026-11-15T12:56:00Z,05-monthly-revenue,btree-year,5000002,11,3,738.007,723.852,760.591,0.287,60,112029,1025,Aggregate
+2026-11-15T12:56:12Z,05-monthly-revenue,btree-record-payments,5000002,11,3,31.447,29.900,34.674,0.026,0,10977,0,ModifyTable
+2026-11-15T12:56:13Z,05-monthly-revenue,brin-month,5000002,11,3,139.252,134.430,148.402,0.261,5,627698,0,Aggregate
+2026-11-15T12:56:16Z,05-monthly-revenue,brin-year,5000002,11,3,750.233,742.792,778.362,0.277,60,120435,0,Aggregate
+2026-11-15T12:56:27Z,05-monthly-revenue,brin-record-payments,5000002,11,3,31.316,29.899,36.693,0.027,0,10955,0,ModifyTable
+2026-11-15T12:56:30Z,05-monthly-revenue,mv-month,5000002,11,3,0.019,0.017,0.030,0.018,5,2,0,Index Scan
+2026-11-15T12:56:30Z,05-monthly-revenue,mv-year,5000002,11,3,0.021,0.021,0.023,0.017,60,3,0,Index Scan

@@ -1,0 +1,63 @@
+-- Case: 05-monthly-revenue
+-- Variant: brin-year
+-- Query file: cases/05-monthly-revenue/year.sql
+ -- Measured at: 2026-11-15 12:56 UTC, 5,000,002 invoices, median 750.233 ms over 11 runs
+
+
+-- The same report for the last twelve months (November 2025 to October 2026, 1,558,432 payments):
+-- a year-to-date or annual summary.
+SELECT date_trunc('month', p.paid_on)::date AS month, i.currency_code,
+       count(*) AS payments, sum(p.amount) AS received
+FROM payment p
+JOIN invoice i ON i.id = p.invoice_id
+WHERE p.paid_on >= DATE '2025-11-01' AND p.paid_on < DATE '2026-11-01'
+GROUP BY 1, 2
+ORDER BY 1, 2;
+
+                                                                                   QUERY PLAN                                                                                    
+---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+ Finalize GroupAggregate  (cost=213516.12..215037.30 rows=5465 width=48) (actual time=805.962..827.978 rows=60 loops=1)
+   Group Key: ((date_trunc('month'::text, (p.paid_on)::timestamp with time zone))::date), i.currency_code
+   Buffers: shared hit=120435
+   ->  Gather Merge  (cost=213516.12..214791.37 rows=10930 width=48) (actual time=805.950..827.921 rows=180 loops=1)
+         Workers Planned: 2
+         Workers Launched: 2
+         Buffers: shared hit=120435
+         ->  Sort  (cost=212516.09..212529.76 rows=5465 width=48) (actual time=794.345..794.349 rows=60 loops=3)
+               Sort Key: ((date_trunc('month'::text, (p.paid_on)::timestamp with time zone))::date), i.currency_code
+               Sort Method: quicksort  Memory: 31kB
+               Buffers: shared hit=120435
+               Worker 0:  Sort Method: quicksort  Memory: 31kB
+               Worker 1:  Sort Method: quicksort  Memory: 31kB
+               ->  Partial HashAggregate  (cost=212067.53..212176.83 rows=5465 width=48) (actual time=794.262..794.287 rows=60 loops=3)
+                     Group Key: (date_trunc('month'::text, (p.paid_on)::timestamp with time zone))::date, i.currency_code
+                     Batches: 1  Memory Usage: 241kB
+                     Buffers: shared hit=120405
+                     Worker 0:  Batches: 1  Memory Usage: 241kB
+                     Worker 1:  Batches: 1  Memory Usage: 241kB
+                     ->  Parallel Hash Join  (cost=65605.25..205579.48 rows=648805 width=16) (actual time=278.285..737.433 rows=519477 loops=3)
+                           Hash Cond: (i.id = p.invoice_id)
+                           Buffers: shared hit=120405
+                           ->  Parallel Seq Scan on invoice i  (cost=0.00..124592.34 rows=2083334 width=12) (actual time=0.034..97.870 rows=1666667 loops=3)
+                                 Buffers: shared hit=103759
+                           ->  Parallel Hash  (cost=57495.18..57495.18 rows=648805 width=20) (actual time=145.108..145.109 rows=519477 loops=3)
+                                 Buckets: 2097152  Batches: 1  Memory Usage: 101856kB
+                                 Buffers: shared hit=16622
+                                 ->  Parallel Bitmap Heap Scan on payment p  (cost=396.58..57495.18 rows=648805 width=20) (actual time=7.068..45.442 rows=519477 loops=3)
+                                       Recheck Cond: ((paid_on >= '2025-11-01'::date) AND (paid_on < '2026-11-01'::date))
+                                       Rows Removed by Index Recheck: 19897
+                                       Heap Blocks: lossy=6218
+                                       Buffers: shared hit=16622
+                                       ->  Bitmap Index Scan on perf_payment_paid_on_brin  (cost=0.00..7.30 rows=1561376 width=0) (actual time=0.154..0.154 rows=166200 loops=1)
+                                             Index Cond: ((paid_on >= '2025-11-01'::date) AND (paid_on < '2026-11-01'::date))
+                                             Buffers: shared hit=2
+ Settings: effective_cache_size = '6GB', work_mem = '64MB', random_page_cost = '1.1'
+ Planning:
+   Buffers: shared hit=19
+ Planning Time: 0.247 ms
+ JIT:
+   Functions: 54
+   Options: Inlining false, Optimization false, Expressions true, Deforming true
+   Timing: Generation 2.490 ms (Deform 0.852 ms), Inlining 0.000 ms, Optimization 0.901 ms, Emission 19.848 ms, Total 23.239 ms
+ Execution Time: 828.966 ms
+

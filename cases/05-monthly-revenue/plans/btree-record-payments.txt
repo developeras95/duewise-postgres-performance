@@ -1,0 +1,27 @@
+-- Case: 05-monthly-revenue
+-- Variant: btree-record-payments
+-- Query file: cases/05-monthly-revenue/record-payments.sql
+ -- Measured at: 2026-11-15 12:56 UTC, 5,000,002 invoices, median 31.447 ms over 11 runs
+
+
+-- Write cost: recording payments. 1,000 payments as POST /api/v1/invoices/{id}/payments inserts them
+-- (without the invoice update, measured in cases 1 and 2). Every index on payment takes each one.
+-- Timed with rollback=true, so nothing changes; the ids are given rather than drawn from the identity
+-- column, so the runs do not use up its numbers.
+INSERT INTO payment (id, invoice_id, payment_method_id, amount, paid_on)
+OVERRIDING SYSTEM VALUE
+SELECT 900000000 + g, g, 2, 100.000, DATE '2026-11-14'
+FROM generate_series(1, 1000) AS g;
+
+                                                          QUERY PLAN                                                           
+-------------------------------------------------------------------------------------------------------------------------------
+ Insert on payment  (cost=0.00..20.00 rows=0 width=0) (actual time=3.291..3.292 rows=0 loops=1)
+   Buffers: shared hit=11017 dirtied=6 written=6
+   I/O Timings: shared write=0.068
+   ->  Function Scan on generate_series g  (cost=0.00..20.00 rows=1000 width=782) (actual time=0.049..0.125 rows=1000 loops=1)
+ Settings: effective_cache_size = '6GB', work_mem = '64MB', random_page_cost = '1.1'
+ Planning Time: 0.039 ms
+ Trigger for constraint payment_invoice_id_fkey: time=14.461 calls=1000
+ Trigger for constraint payment_payment_method_id_fkey: time=13.122 calls=1000
+ Execution Time: 30.978 ms
+
