@@ -1,0 +1,29 @@
+key,value
+recorded_at,2026-11-16 06:19 UTC
+cpu_model,AMD Ryzen 9 7900X 12-Core Processor
+cpu_cores_for_docker,24
+memory_for_docker,15.2 GB
+kernel,Linux 6.6.114.1-microsoft-standard-WSL2 x86_64
+data_disk_free,934.8G free of 1006.9G
+postgresql,"PostgreSQL 17.11 on x86_64-pc-linux-musl, compiled by gcc (Alpine 15.2.0) 15.2.0, 64-bit"
+database_size,4077 MB
+invoices,"5,000,002"
+line_items,"12,509,126"
+payments,"4,622,211"
+clients,"50,001"
+setting.dynamic_shared_memory_type,posix
+setting.effective_cache_size,6GB
+setting.effective_io_concurrency,1
+setting.enable_seqscan,on
+setting.jit,on
+setting.maintenance_work_mem,1GB
+setting.max_connections,100
+setting.max_parallel_workers_per_gather,2
+setting.max_wal_size,8GB
+setting.min_wal_size,80MB
+setting.pg_stat_statements.track,all
+setting.random_page_cost,1.1
+setting.shared_buffers,2GB
+setting.shared_preload_libraries,pg_stat_statements
+setting.track_io_timing,on
+setting.work_mem,64MB

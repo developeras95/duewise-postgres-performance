@@ -1,0 +1,83 @@
+# Checks that the whole study can be reproduced from a clean checkout: the schema loads, the generator
+# and its validation run, and every case runs end to end (before, fix, after, undo). It runs at
+# 20,000 invoices so it finishes in minutes; the timings it prints are a smoke test, not results.
+# The published results come from 5 million invoices on the hardware listed in the README.
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+  workflow_call: # the release workflow runs the same checks first
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  reproduce:
+    name: Every script runs on a fresh database
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    env:
+      PSQL: docker compose exec -T postgres psql -U duewise -d duewise -v ON_ERROR_STOP=1 -q
+
+    steps:
+      - name: Check out the code
+        uses: actions/checkout@v7
+
+      - name: Start PostgreSQL with the Duewise schema
+        run: |
+          docker compose up -d --wait
+          # The image loads schema/ with a temporary server that listens only on a local socket; wait
+          # for the final server, which also listens on TCP, so the schema is complete.
+          for i in $(seq 1 60); do
+            docker compose exec -T postgres pg_isready -q -h 127.0.0.1 -U duewise -d duewise && exit 0
+            sleep 2
+          done
+          echo "::error::PostgreSQL did not finish starting"; docker compose logs --no-color; exit 1
+
+      - name: Generate 20,000 invoices and validate them
+        run: |
+          $PSQL -v invoices=20000 -f /work/generator/generate.sql
+          $PSQL -f /work/generator/validate.sql
+
+      - name: Run every case
+        run: |
+          before=$(wc -l < results/timings.csv)
+          echo "BEFORE_ROWS=$before" >> "$GITHUB_ENV"
+          for case in cases/*/; do
+            echo "::group::${case}run.sql"
+            $PSQL -f "/work/${case}run.sql"
+            echo "::endgroup::"
+          done
+
+      - name: Undo every case
+        run: |
+          for case in cases/*/; do $PSQL -f "/work/${case}undo.sql"; done
+          left=$($PSQL -At -c "SELECT count(*) FROM pg_class WHERE relname LIKE 'perf\_%'")
+          if [ "$left" != "0" ]; then echo "::error::$left study objects left after the undo scripts"; exit 1; fi
+
+      - name: Write this run's timings to the run summary
+        if: always()
+        run: |
+          {
+            echo "### Timings at 20,000 invoices (smoke test, not results)"
+            echo
+            echo "| Case | Variant | Median ms | Rows |"
+            echo "| --- | --- | ---: | ---: |"
+            tail -n +"$((BEFORE_ROWS + 1))" results/timings.csv \
+              | awk -F, '{ printf "| %s | %s | %s | %s |\n", $2, $3, $7, $11 }'
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Show the database log
+        if: failure()
+        run: docker compose logs --no-color --tail 200
+
+      - name: Stop and remove the database
+        if: always()
+        run: docker compose down -v

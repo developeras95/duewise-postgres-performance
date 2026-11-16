@@ -1,0 +1,42 @@
+# Publishes a release of the study when a version tag is pushed:  git tag v1.0.0  then  git push origin v1.0.0
+#   1. runs the same checks as CI: the whole study reproduced on a fresh database
+#   2. checks the tag has a CHANGELOG.md entry, and creates the GitHub Release with it as notes
+# Safe to re-run: an existing release gets its notes replaced.
+name: Release
+
+on:
+  push:
+    tags: ['v*.*.*']
+
+jobs:
+  check:
+    name: Reproduce the study
+    uses: ./.github/workflows/ci.yml
+
+  release:
+    name: Publish
+    needs: check
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: write # create the GitHub Release
+    steps:
+      - name: Check out the code
+        uses: actions/checkout@v7
+
+      - name: Create the GitHub Release from CHANGELOG.md
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          version="${GITHUB_REF_NAME#v}"
+          notes="$RUNNER_TEMP/release-notes.md"
+          awk -v v="$version" 'index($0, "## [" v "]") == 1 {f = 1; next} /^## \[/ {f = 0} f' CHANGELOG.md \
+            | sed -e '/./,$!d' > "$notes"
+          if [ ! -s "$notes" ]; then
+            echo "::error::CHANGELOG.md has no section for [$version]"; exit 1
+          fi
+          if gh release view "$GITHUB_REF_NAME" > /dev/null 2>&1; then
+            gh release edit "$GITHUB_REF_NAME" --title "Duewise PostgreSQL performance study $version" --notes-file "$notes"
+          else
+            gh release create "$GITHUB_REF_NAME" --title "Duewise PostgreSQL performance study $version" \
+              --notes-file "$notes" --verify-tag
+          fi

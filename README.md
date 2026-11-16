@@ -1,5 +1,6 @@
 # Duewise PostgreSQL performance study
 
+[![CI](https://github.com/developeras95/duewise-postgres-performance/actions/workflows/ci.yml/badge.svg)](https://github.com/developeras95/duewise-postgres-performance/actions/workflows/ci.yml)
 ![PostgreSQL 17](https://img.shields.io/badge/PostgreSQL-17-336791)
 ![License: proprietary](https://img.shields.io/badge/license-proprietary-lightgrey)
 
@@ -11,8 +12,59 @@ with realistic data, finds the queries that slow down at scale, and fixes each o
 `EXPLAIN (ANALYZE, BUFFERS)` plans and timings from before and after, together with its cost: index size and
 slower writes. The indexes that earn their place go back into Duewise as a migration.
 
-> Work in progress: all five cases are done; next, the chosen indexes go back into Duewise as a
-> migration, and the results are summarised here.
+## Results
+
+Five requests Duewise serves, at 5 million invoices, before and after each fix. Median database time of
+11 warm runs; every number has its query plans in the case's folder.
+
+| Case | Request | Before | After | Fix | What it costs |
+| --- | --- | ---: | ---: | --- | --- |
+| [1](cases/01-overdue-list/README.md) | Overdue invoices, first page | 339 ms | **0.56 ms** | Partial index on open invoices, in the list's order | 26 MB; no measurable write cost |
+| [2](cases/02-client-statement/README.md) | Statement of the largest client | 95 ms | **7.1 ms** | Partial covering index on (client, currency, due date) | 55 MB; part payments +30% |
+| [3](cases/03-client-search/README.md) | Client search by part of a name or email | 18–20 ms | **0.04–1.8 ms** | `pg_trgm` GIN indexes on name and email | 6.6 MB; new clients +34%, about 6 µs each |
+| [4](cases/04-invoice-list/README.md) | Invoice list as it opens | 959 ms | **0.42 ms** | Index in the list's order | 150 MB; no measurable write cost |
+| [5](cases/05-monthly-revenue/README.md) | Revenue per month, twelve months | 767 ms | **0.02 ms** | Materialized view refreshed nightly, plus a BRIN index | 72 kB; 1.3 s per refresh |
+
+About 240 MB of indexes in all, against 3.8 GB of data.
+
+### What an index could not fix
+
+- **Counting.** The invoice list's total read every row: 200 ms with or without an index (case 4). The fix
+  was an API change: above 100,000 invoices, Duewise now reports PostgreSQL's estimate, 0.12% off, in 0.017 ms.
+- **Deep pages.** Page 501 of the invoice list still costs 11.5 ms with the index, and more for every page
+  after it. Keyset paging ("the 20 after this one") costs 0.41 ms on any page, but changes the API, so it is
+  documented and not adopted.
+- **The report's join.** Indexes on the payment date made the monthly report only 27% faster, because most
+  of its time goes on finding each payment's currency on its invoice (case 5). Storing the result did what no
+  index could.
+
+### What was measured and left out
+
+- An index on client names (case 3): it made the first page of clients 500× faster and some searches
+  **slower than no index at all**, depending on where in the alphabet the matches fall.
+- A B-tree on payment dates (case 5): 215 MB, 9,000 times the size of the BRIN index, for a few milliseconds
+  more on a query the stored report answers anyway.
+
+## Back in Duewise
+
+The fixes went into [Duewise 1.2.0](https://github.com/developeras95/duewise-invoicing-api/releases/tag/v1.2.0)
+as migration
+[`V6`](https://github.com/developeras95/duewise-invoicing-api/blob/v1.2.0/src/main/resources/db/migration/V6__performance_indexes_and_revenue_report.sql),
+each index commented with the case that measured it:
+
+| Study | Duewise |
+| --- | --- |
+| `perf_invoice_open_by_issue_date` | `ix_invoice_open_by_issue_date` |
+| `perf_invoice_client_statement` | `ix_invoice_client_statement` |
+| `perf_client_name_trgm`, `perf_client_email_trgm` | `ix_client_name_trgm`, `ix_client_email_trgm` |
+| `perf_invoice_by_issue_date` | `ix_invoice_by_issue_date` |
+| `perf_payment_paid_on_brin` | `ix_payment_paid_on_brin` |
+| `perf_monthly_revenue` | `monthly_revenue`, behind the new `GET /api/v1/reports/revenue` |
+
+Duewise 1.2.0 also estimates the unfiltered invoice count, and the
+[web app 1.1.0](https://github.com/developeras95/duewise-web/releases/tag/v1.1.0) shows the revenue report and
+"about 4,994,000 invoices". On this study's database, `V6` took 6.3 s to apply, and the plans of every case's
+query were checked again with Duewise's own indexes.
 
 ## The cases
 
@@ -95,6 +147,9 @@ year's invoice-number counter matches the highest number issued. It stops with a
   disk.
 - Write costs (how much an index slows down inserts) are measured the same way, with each run rolled back
   so every run starts from the same data.
+- [CI](.github/workflows/ci.yml) reproduces the whole study on every push: a fresh database, 20,000 generated
+  invoices, every case from before to after, then every undo. At that scale the timings are only a smoke
+  test; the results above come from 5 million invoices.
 
 ### The harness
 
@@ -121,7 +176,7 @@ On PowerShell, put the command on one line or end each line with a backtick (`` 
 
 ## Hardware
 
-Recorded by `harness/environment.sql` (full list in `results/environment.csv` once results are published):
+Recorded by `harness/environment.sql` (full list in [`results/environment.csv`](results/environment.csv)):
 
 | | |
 | --- | --- |
@@ -142,8 +197,11 @@ schema/      Duewise's tables, loaded when the database is first created
 generator/   SQL that fills the tables with realistic data at a chosen scale
 harness/     SQL that times queries, saves their plans and records the environment
 cases/       one folder per case: queries, plans before and after, write-up
-results/     measured timings as CSV
+results/     measured timings, index sizes and the environment, as CSV
+.github/     CI that reproduces the study at small scale, and the release workflow
 ```
+
+Changes are listed in [CHANGELOG.md](CHANGELOG.md).
 
 ## License
 
